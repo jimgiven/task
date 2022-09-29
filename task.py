@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 from pathlib import Path
 from typing import Optional
 
@@ -8,9 +9,16 @@ from pydantic import BaseModel
 from rich import print as rprint
 
 
+@enum.unique
+class TaskStatus(enum.Enum):
+    INCOMPLETE = "incomplete"
+    COMPLETE = "complete"
+
+
 class Task(BaseModel):
     id: int
     title: str
+    status: TaskStatus = TaskStatus.INCOMPLETE
 
 
 class Project(BaseModel):
@@ -46,6 +54,11 @@ def task():
     pass
 
 
+@cli.command("scratch")
+def scratch():
+    pass
+
+
 @project.command("init")
 @click.argument("project_name")
 def init(project_name: str):
@@ -56,12 +69,19 @@ def init(project_name: str):
 @project.command("info")
 def info():
     project = Project.read()
-    rprint(f"[bold blue]Project: {project.name}[/bold blue]")
+    rprint(f"[bold green]Project: {project.name}[/bold green]")
+    for task in project.task_iter:
+        symbol = {
+            TaskStatus.COMPLETE: "✅",
+            TaskStatus.INCOMPLETE: "⭕",
+        }.get(task.status)
+        rprint(f"  {symbol} [bold blue]{task.id}: {task.title}[/bold blue]")
 
 
 @project.command("migrate")
 def migrate():
-    Project.read().write()
+    project = Project.read()
+    project.write()
 
 
 @task.command("add")
@@ -76,6 +96,23 @@ def add(title: str):
 
     project.tasks[task.id] = task
     project.write()
+
+
+@task.command("complete")
+@click.option("--task-id", "-t", "task_id", type=int)
+def complete(task_id: int):
+    project = Project.read()
+
+    task = project.tasks.get(task_id)
+
+    if task is None:
+        rprint(f"[bold red]{task_id} is not a valid ID.[/bold red]")
+
+    task.status = TaskStatus.COMPLETE
+
+    project.write()
+
+    rprint(f"[bold green]{task.title} - Complete[/bold green]")
 
 
 cli.add_command(project)

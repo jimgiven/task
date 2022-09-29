@@ -1,1 +1,1 @@
-{"name": "Task", "next_id": 2, "tasks": {"1": {"id": 1, "title": "Add Pre-Commit"}, "2": {"id": 2, "title": "Add Statuses To Tickets"}}}
+{"name": "Task", "next_id": 2, "tasks": {"1": {"id": 1, "title": "Add Pre-Commit", "status": "complete"}, "2": {"id": 2, "title": "Add Statuses To Tickets", "status": "incomplete"}}}
