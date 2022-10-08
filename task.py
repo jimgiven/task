@@ -35,7 +35,7 @@ class Project(BaseModel):
             fh.write(self.json())
 
     @property
-    def task_iter(self):
+    def task_iter(self) -> list[Task]:
         return sorted([task for task in self.tasks.values()], key=lambda task: task.id)
 
 
