@@ -2,16 +2,24 @@ from __future__ import annotations
 
 import enum
 from pathlib import Path
-from typing import Optional
 
 import click
+from git.repo import Repo
 from pydantic import BaseModel
 from rich import print as rprint
+
+repo = Repo()
+
+
+def _checkout_branch(branch_name: str):
+    branch = repo.create_head(branch_name)
+    branch.checkout()
 
 
 @enum.unique
 class TaskStatus(enum.Enum):
     INCOMPLETE = "incomplete"
+    STARTED = "started"
     COMPLETE = "complete"
 
 
@@ -23,6 +31,7 @@ class Task(BaseModel):
 
 class Project(BaseModel):
     name: str
+    project_abbv: str
     next_id: int = 0
     tasks: dict[int, Task] = {}
 
@@ -37,6 +46,14 @@ class Project(BaseModel):
     @property
     def task_iter(self) -> list[Task]:
         return sorted([task for task in self.tasks.values()], key=lambda task: task.id)
+
+    def get_task(self, task_id: int) -> Task:
+        task = self.tasks.get(task_id)
+
+        if task is None:
+            raise ValueError(f"{task_id} is not a valid ID.")
+
+        return task
 
 
 @click.group()
@@ -74,6 +91,7 @@ def info():
         symbol = {
             TaskStatus.COMPLETE: "✅",
             TaskStatus.INCOMPLETE: "⭕",
+            TaskStatus.STARTED: "⏩",
         }.get(task.status)
         rprint(f"  {symbol} [bold blue]{task.id}: {task.title}[/bold blue]")
 
@@ -98,15 +116,29 @@ def add(title: str):
     project.write()
 
 
+@task.command("start")
+@click.option("--task-id", "-t", "task_id", type=int)
+def complete(task_id: int):
+    project = Project.read()
+
+    task = project.get_task(task_id)
+
+    task.status = TaskStatus.STARTED
+
+    branch_name = (
+        f"{project.project_abbv}-{task.id}/{task.title.lower().replace(' ', '-')}"
+    )
+    _checkout_branch(branch_name)
+
+    project.write()
+
+
 @task.command("complete")
 @click.option("--task-id", "-t", "task_id", type=int)
 def complete(task_id: int):
     project = Project.read()
 
-    task = project.tasks.get(task_id)
-
-    if task is None:
-        rprint(f"[bold red]{task_id} is not a valid ID.[/bold red]")
+    task = project.get_task(task_id)
 
     task.status = TaskStatus.COMPLETE
 
