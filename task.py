@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import enum
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Generator, Optional
 
 import click
 from git.repo import Repo
@@ -56,6 +58,15 @@ class Project(BaseModel):
         return task
 
 
+@contextmanager
+def project_context(read_only: bool = False) -> Generator[Project, None, None]:
+    project = Project.read()
+    yield project
+
+    if not read_only:
+        project.write()
+
+
 @click.group()
 def cli():
     pass
@@ -85,66 +96,58 @@ def init(project_name: str):
 
 @project.command("info")
 def info():
-    project = Project.read()
-    rprint(f"[bold green]Project: {project.name}[/bold green]")
-    for task in project.task_iter:
-        symbol = {
-            TaskStatus.COMPLETE: "✅",
-            TaskStatus.INCOMPLETE: "⭕",
-            TaskStatus.STARTED: "⏩",
-        }.get(task.status)
-        rprint(f"  {symbol} [bold blue]{task.id}: {task.title}[/bold blue]")
+    with project_context(read_only=True) as project:
+        rprint(f"[bold green]Project: {project.name}[/bold green]")
+        for task in project.task_iter:
+            symbol = {
+                TaskStatus.COMPLETE: "✅",
+                TaskStatus.INCOMPLETE: "⭕",
+                TaskStatus.STARTED: "⏩",
+            }.get(task.status)
+            rprint(f"  {symbol} [bold blue]{task.id}: {task.title}[/bold blue]")
 
 
 @project.command("migrate")
 def migrate():
-    project = Project.read()
-    project.write()
+    with project_context() as project:
+        pass
 
 
 @task.command("add")
 @click.option("--title", "title", prompt="Title")
 def add(title: str):
-    project = Project.read()
+    with project_context() as project:
+        project.next_id += 1
+        task = Task(id=project.next_id, title=title)
 
-    project.next_id += 1
-    task = Task(id=project.next_id, title=title)
+        assert project.tasks.get(task.id) is None, "Oops, something went wrong!"
 
-    assert project.tasks.get(task.id) is None, "Oops, something went wrong!"
-
-    project.tasks[task.id] = task
-    project.write()
+        project.tasks[task.id] = task
 
 
 @task.command("start")
-@click.option("--task-id", "-t", "task_id", type=int)
+@click.argument("task_id", type=int)
 def complete(task_id: int):
-    project = Project.read()
+    with project_context() as project:
+        task = project.get_task(task_id)
 
-    task = project.get_task(task_id)
+        task.status = TaskStatus.STARTED
 
-    task.status = TaskStatus.STARTED
-
-    branch_name = (
-        f"{project.project_abbv}-{task.id}/{task.title.lower().replace(' ', '-')}"
-    )
-    _checkout_branch(branch_name)
-
-    project.write()
+        branch_name = (
+            f"{project.project_abbv}-{task.id}/{task.title.lower().replace(' ', '-')}"
+        )
+        _checkout_branch(branch_name)
 
 
 @task.command("complete")
-@click.option("--task-id", "-t", "task_id", type=int)
+@click.argument("task_id", type=int)
 def complete(task_id: int):
-    project = Project.read()
+    with project_context() as project:
+        task = project.get_task(task_id)
 
-    task = project.get_task(task_id)
+        task.status = TaskStatus.COMPLETE
 
-    task.status = TaskStatus.COMPLETE
-
-    project.write()
-
-    rprint(f"[bold green]{task.title} - Complete[/bold green]")
+        rprint(f"[bold green]{task.title} - Complete[/bold green]")
 
 
 cli.add_command(project)
