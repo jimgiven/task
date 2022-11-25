@@ -6,11 +6,15 @@ from pathlib import Path
 from typing import Generator, Optional
 
 import click
+import parse
 from git.repo import Repo
 from pydantic import BaseModel
 from rich import print as rprint
 
 repo = Repo()
+
+
+BRANCH_FORMAT_STRING = "{project_abbv}-{task_id:d}/{task_title}"
 
 
 def _checkout_branch(branch_name: str):
@@ -133,15 +137,30 @@ def complete(task_id: int):
 
         task.status = TaskStatus.STARTED
 
-        branch_name = (
-            f"{project.project_abbv}-{task.id}/{task.title.lower().replace(' ', '-')}"
+        branch_name = BRANCH_FORMAT_STRING.format(
+            project_abbv=project.project_abbv,
+            task_id=task.id,
+            task_title=task.title.lower().replace(" ", "-"),
         )
         _checkout_branch(branch_name)
 
 
 @task.command("complete")
-@click.argument("task_id", type=int)
-def complete(task_id: int):
+@click.option("--task", "-t", "task_id", type=int)
+@click.option("--branch", "-b", "branch", type=str)
+def complete(task_id: Optional[int], branch: Optional[str]):
+    if branch is not None and task_id is not None:
+        raise ValueError(
+            "Cannot provide --task [bold]and[/bold] --branch in the same command."
+        )
+
+    if branch is None and task_id is None:
+        raise ValueError("Must provide at least --task [bold]or[/bold] --branch.")
+
+    if branch:
+        print(branch)
+        task_id = parse.parse(BRANCH_FORMAT_STRING, branch)["task_id"]
+
     with project_context() as project:
         task = project.get_task(task_id)
 
