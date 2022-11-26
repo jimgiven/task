@@ -4,5 +4,5 @@ reflog_message=$(git reflog -1)
 merged_branch_name=$(echo $reflog_message | cut -d" " -f 4 | sed "s/://")
 
 task task complete --branch "$merged_branch_name"
-git add *
+git add tasks.json
 git ci --amend --no-edit

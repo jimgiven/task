@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import enum
+import json
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Callable, Generator, Optional
 
 import click
 import parse
@@ -14,6 +15,7 @@ from rich import print as rprint
 repo = Repo()
 
 
+PROJECT_FILE = "tasks.json"
 BRANCH_FORMAT_STRING = "{project_abbv}-{task_id:d}/{task_title}"
 
 
@@ -44,13 +46,14 @@ class Project(BaseModel):
     project_abbv: str
     next_id: int = 0
     tasks: dict[int, Task] = {}
+    version: int
 
     @staticmethod
     def read() -> Project:
-        return Project.parse_file(Path("tasks.json"))
+        return Project.parse_file(Path(PROJECT_FILE))
 
     def write(self: Project):
-        with open("tasks.json", "w") as fh:
+        with open(PROJECT_FILE, "w") as fh:
             fh.write(self.json())
 
     @property
@@ -79,6 +82,33 @@ def project_context(read_only: bool = False) -> Generator[Project, None, None]:
 
     if not read_only:
         project.write()
+
+
+def migrate_project():
+
+    with open(PROJECT_FILE, "r") as fh:
+        project = json.loads(fh.read())
+
+    version = project.get("version", -1)
+
+    for idx, migration_func in enumerate(MIGRATIONS):
+        if idx <= version:
+            continue
+
+        migration_func(project)
+        project["version"] = idx
+
+    with open(PROJECT_FILE, "w") as fh:
+        fh.write(json.dumps(project))
+
+
+def initial_migration(raw_project: dict):
+    print("Running initial migration")
+
+
+MIGRATIONS: list[Callable] = [
+    initial_migration,
+]
 
 
 @click.group()
@@ -123,8 +153,7 @@ def info():
 
 @project.command("migrate")
 def migrate():
-    with project_context() as project:
-        pass
+    migrate_project()
 
 
 @task.command("add")
