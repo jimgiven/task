@@ -28,6 +28,10 @@ class TaskStatus(enum.Enum):
     STARTED = "started"
     COMPLETE = "complete"
 
+    @property
+    def display_name(self) -> str:
+        return self.value.capitalize()
+
 
 class Task(BaseModel):
     id: int
@@ -64,7 +68,7 @@ class Project(BaseModel):
     def update_task_status(self, task_id: int, status: TaskStatus) -> Task:
         task = self.get_task(task_id)
         task.status = status
-        rprint(f"[bold green]{task.title} - {task.title}[/bold green]")
+        rprint(f"[bold green]{task.title} - {task.status.display_name}[/bold green]")
         return task
 
 
@@ -133,6 +137,8 @@ def add(title: str):
         assert project.tasks.get(task.id) is None, "Oops, something went wrong!"
 
         project.tasks[task.id] = task
+
+        rprint(f"{task.id} - {task.title}")
 
 
 @task.command("start")
