@@ -102,7 +102,7 @@ def scratch():
 
 
 @project.command("init")
-@click.argument("project_name")
+@click.option("--project_name", "project_name", prompt="Project Name")
 def init(project_name: str):
     project = Project(name=project_name)
     project.write()
