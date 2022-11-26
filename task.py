@@ -61,6 +61,12 @@ class Project(BaseModel):
 
         return task
 
+    def update_task_status(self, task_id: int, status: TaskStatus) -> Task:
+        task = self.get_task(task_id)
+        task.status = status
+        rprint(f"[bold green]{task.title} - {task.title}[/bold green]")
+        return task
+
 
 @contextmanager
 def project_context(read_only: bool = False) -> Generator[Project, None, None]:
@@ -133,9 +139,7 @@ def add(title: str):
 @click.argument("task_id", type=int)
 def complete(task_id: int):
     with project_context() as project:
-        task = project.get_task(task_id)
-
-        task.status = TaskStatus.STARTED
+        task = project.update_task_status(task_id, TaskStatus.STARTED)
 
         branch_name = BRANCH_FORMAT_STRING.format(
             project_abbv=project.project_abbv,
@@ -158,15 +162,18 @@ def complete(task_id: Optional[int], branch: Optional[str]):
         raise ValueError("Must provide at least --task [bold]or[/bold] --branch.")
 
     if branch:
-        print(branch)
         task_id = parse.parse(BRANCH_FORMAT_STRING, branch)["task_id"]
 
     with project_context() as project:
-        task = project.get_task(task_id)
+        project.update_task_status(task_id, TaskStatus.COMPLETE)
 
-        task.status = TaskStatus.COMPLETE
 
-        rprint(f"[bold green]{task.title} - Complete[/bold green]")
+@task.command("mark_incomplete")
+@click.option("--task", "-t", "task_id", type=int, required=True)
+def mark_incomplete(task_id: int):
+
+    with project_context() as project:
+        project.update_task_status(task_id, TaskStatus.INCOMPLETE)
 
 
 cli.add_command(project)
