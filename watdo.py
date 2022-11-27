@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 import json
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Generator, Optional
@@ -133,8 +134,14 @@ def scratch():
 
 @cli.command("init")
 @click.option("--project_name", "project_name", prompt="Project Name")
-def init(project_name: str):
-    project = Project(name=project_name)
+@click.option("--project_abbv", "project_abbv", prompt="Project Abbv")
+def init(project_name: str, project_abbv: str):
+    if os.path.exists(PROJECT_FILE):
+        raise click.ClickException(
+            "Cannot initialize a project becuase a project currently exists."
+        )
+
+    project = Project(name=project_name, project_abbv=project_abbv)
     project.write()
 
 
