@@ -1,6 +1,6 @@
 
 [tool.poetry]
-name = "task"
+name = "watdo"
 version = "0.1.0"
 description = "\"Command line issue tracker\""
 authors = ["Jim Given <jimgiven619@gmail.com>"]
@@ -16,12 +16,12 @@ GitPython = "^3.1.28"
 parse = "^1.19.0"
 
 [tool.poetry.scripts]
-task = 'task:cli'
+watdo = 'watdo:cli'
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "^2.20.0"
-commitizen = "^2.35.0"
 black = "^22.10.0"
+pre-commit = "^2.20.0"
+commitizen = "^2.37.0"
 
 [build-system]
 requires = ["poetry-core"]

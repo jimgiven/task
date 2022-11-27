@@ -15,7 +15,7 @@ from rich import print as rprint
 repo = Repo()
 
 
-PROJECT_FILE = "tasks.json"
+PROJECT_FILE = "watdo.json"
 BRANCH_FORMAT_STRING = "{project_abbv}-{task_id:d}/{task_title}"
 
 
@@ -131,14 +131,14 @@ def scratch():
     pass
 
 
-@project.command("init")
+@cli.command("init")
 @click.option("--project_name", "project_name", prompt="Project Name")
 def init(project_name: str):
     project = Project(name=project_name)
     project.write()
 
 
-@project.command("info")
+@cli.command("info")
 def info():
     with project_context(read_only=True) as project:
         rprint(f"[bold green]Project: {project.name}[/bold green]")
@@ -151,7 +151,7 @@ def info():
             rprint(f"  {symbol} [bold blue]{task.id}: {task.title}[/bold blue]")
 
 
-@project.command("migrate")
+@cli.command("migrate")
 def migrate():
     migrate_project()
 
