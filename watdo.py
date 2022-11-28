@@ -141,7 +141,9 @@ def init(project_name: str, project_abbv: str):
             "Cannot initialize a project becuase a project currently exists."
         )
 
-    project = Project(name=project_name, project_abbv=project_abbv)
+    project = Project(
+        name=project_name, project_abbv=project_abbv, version=len(MIGRATIONS) - 1
+    )
     project.write()
 
 
