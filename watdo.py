@@ -55,7 +55,7 @@ class Project(BaseModel):
 
     def write(self: Project):
         with open(PROJECT_FILE, "w") as fh:
-            fh.write(self.json())
+            fh.write(json.dumps(json.loads(self.json()), indent=2))
 
     @property
     def task_iter(self) -> list[Task]:
@@ -100,16 +100,18 @@ def migrate_project():
         project["version"] = idx
 
     with open(PROJECT_FILE, "w") as fh:
-        fh.write(json.dumps(project))
+        fh.write(json.dumps(project, indent=2))
 
 
 def initial_migration(raw_project: dict):
     print("Running initial migration")
 
 
-MIGRATIONS: list[Callable] = [
-    initial_migration,
-]
+def format_project_file(raw_project: dict):
+    print("Saving updated project file")
+
+
+MIGRATIONS: list[Callable] = [initial_migration, format_project_file]
 
 
 @click.group()
